@@ -2,6 +2,7 @@
 from random import randint, choice, sample
 import time
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 # ----- TODO -----
@@ -92,8 +93,9 @@ def create_another_points(origin_points, number):
 
 
 def calculate_distance(point1, point2):
-    return abs(point2[0] - point1[0]) + abs(point2[1] - point1[1])
-    #return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
+    #return abs(point2[0] - point1[0]) + abs(point2[1] - point1[1])
+    return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
+    #return np.linalg.norm(np.array(point1) - np.array(point2))
 
 
 def calculate_cluster_distance(cluster1, cluster2):
@@ -102,7 +104,9 @@ def calculate_cluster_distance(cluster1, cluster2):
 
 def agglomerative_clustering(points, number_of_clusters, linkage, num_points):
     # first we create the distance matrix
-    # matrix_of_distances = generate_matrix_of_distances(points)
+
+    matrix_of_distances = generate_matrix_of_distances(points)
+
     clusters = [Cluster([curr_point], linkage) for curr_point in points]
 
     while len(clusters) > number_of_clusters:
@@ -117,17 +121,19 @@ def agglomerative_clustering(points, number_of_clusters, linkage, num_points):
         min_distance = float('inf')
         connect_clusters = (-1, -1)
 
-        for i in range(len(clusters)):
-            for j in range(i + 1, len(clusters)):
-                distance = calculate_cluster_distance(clusters[i], clusters[j])
+        for i in range(len(matrix_of_distances)):
+            for j in range(i + 1, len(matrix_of_distances[i])):
+                distance = matrix_of_distances[i][j]
                 if distance < min_distance:
                     min_distance = distance
                     connect_clusters = (i, j)
 
         if connect_clusters != (-1, -1):
             clusters[connect_clusters[0]].points.extend(clusters[connect_clusters[1]].points)
-            clusters[connect_clusters[0]].update_center_and_distance()
-            del clusters[connect_clusters[1]]
+            matrix_of_distances.pop(connect_clusters[1])
+            for x in range(len(matrix_of_distances)):
+                matrix_of_distances[x].pop(connect_clusters[1])
+            clusters.pop(connect_clusters[1])
 
     return clusters
 
@@ -135,6 +141,7 @@ def agglomerative_clustering(points, number_of_clusters, linkage, num_points):
 def validate_clusters(clusters):
     unsuccessful = 0
     for i, cluster in enumerate(clusters):
+        cluster.update_center_and_distance()
         center, avg_distance = cluster.center, cluster.average_distance
         if avg_distance > 500:
             unsuccessful += 1
@@ -165,7 +172,7 @@ def visualise_clusters(clusters, filename):
 
 
 def main():
-    num_points = 5000
+    num_points = 20000
     origin_points = generate_origin_points()
     another_points = create_another_points(origin_points, num_points)
     linkage = 'centroid'
