@@ -1,15 +1,13 @@
 # UI assignment 3c -> clustering, author: Filip Zubaj, date: 17.11.2023
-from random import randint, choice
+from random import randint, choice, sample
+import time
 import matplotlib.pyplot as plt
 
 
-
-
-# ----- QUESTIONS -----
-# do points have to be unique?
 # ----- TODO -----
 # aglomeration -> metoid
 # aglomeration -> centroid
+
 
 class Cluster:
     def __init__(self, points, linkage):
@@ -46,21 +44,13 @@ class Cluster:
         self.center = self.calculate_center(self.linkage)
         self.average_distance = self.calculate_average_distance()
 
-    def check_distance_condition(self, other_cluster):
-        check = self.average_distance + other_cluster.average_distance
-        if check > 500:
-            self.avg_distance_under_500 = False
-
 
 # generate 20 points in range (-5000, 5000) with random and unique X and Y coordinates
 def generate_origin_points():
-    origin_points = set()
-    while len(origin_points) < 20:
-        x = randint(-5000, 5000)
-        y = randint(-5000, 5000)
-        origin_points.add((x, y))
-
-    return list(origin_points)
+    x_coordinates = sample(range(-5000, 5001), 20)
+    y_coordinates = sample(range(-5000, 5001), 20)
+    origin_points = list(zip(x_coordinates, y_coordinates))
+    return origin_points
 
 
 def generate_matrix_of_distances(points):
@@ -102,7 +92,8 @@ def create_another_points(origin_points, number):
 
 
 def calculate_distance(point1, point2):
-    return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
+    return abs(point2[0] - point1[0]) + abs(point2[1] - point1[1])
+    #return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
 
 
 def calculate_cluster_distance(cluster1, cluster2):
@@ -129,14 +120,11 @@ def agglomerative_clustering(points, number_of_clusters, linkage, num_points):
         for i in range(len(clusters)):
             for j in range(i + 1, len(clusters)):
                 distance = calculate_cluster_distance(clusters[i], clusters[j])
-                if distance < min_distance and clusters[i].avg_distance_under_500 and clusters[j].avg_distance_under_500:
+                if distance < min_distance:
                     min_distance = distance
                     connect_clusters = (i, j)
 
         if connect_clusters != (-1, -1):
-            clusters[connect_clusters[0]].check_distance_condition(clusters[connect_clusters[1]])
-            if not clusters[connect_clusters[0]].avg_distance_under_500:
-                continue
             clusters[connect_clusters[0]].points.extend(clusters[connect_clusters[1]].points)
             clusters[connect_clusters[0]].update_center_and_distance()
             del clusters[connect_clusters[1]]
@@ -150,14 +138,14 @@ def validate_clusters(clusters):
         center, avg_distance = cluster.center, cluster.average_distance
         if avg_distance > 500:
             unsuccessful += 1
-            print(f'❌Error❌: unsuccessful cluster with number {str(i + 1)}')
+            print('❌Error❌: unsuccessful cluster with number ' + str(i + 1))
         else:
-            print(f'✅Success✅: successful cluster with number {str(i + 1)}')
+            print('✅Success✅: successful cluster with number ' + str(i + 1))
 
-        print(f'Center: {str(center)}')
-        print(f'Average distance from center: {str(avg_distance)}')
+        print('Center: ' + str(center))
+        print('Average distance from center: ' + str(avg_distance))
 
-    print(f'Success rate: {100 - unsuccessful / len(clusters) * 100}%')
+    print('Success rate: {}%'.format(100 - unsuccessful / len(clusters) * 100))
 
 
 def visualise_clusters(clusters, filename):
@@ -169,7 +157,7 @@ def visualise_clusters(clusters, filename):
         plt.scatter(x, y, c=colors[i % len(colors)])
         plt.scatter(cluster.center[0], cluster.center[1], c='b')
 
-    plt.title(f'Clustering with {clusters[0].linkage} linkage')
+    plt.title('Clustering with ' + clusters[0].linkage + ' linkage')
     plt.xlabel('X - axis')
     plt.ylabel('Y - axis')
     plt.savefig(filename)
@@ -181,7 +169,11 @@ def main():
     origin_points = generate_origin_points()
     another_points = create_another_points(origin_points, num_points)
     linkage = 'centroid'
+    start_time = time.time()  # Record the start time
     clusters = agglomerative_clustering(another_points, 20, linkage, num_points)
+    end_time = time.time()  # Record the end time
+    elapsed_time = end_time - start_time  # Calculate the elapsed time
+    print(f"Elapsed Time: {elapsed_time} seconds")
     validate_clusters(clusters)
     visualise_clusters(clusters, 'clustering1.png')
 
